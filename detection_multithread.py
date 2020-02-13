@@ -62,14 +62,14 @@ def MotionDetect(filename):
             MotionCounter+=1
 
         # 呈現影像
-        # cv2.imshow('frame',thresh)
-        # cv2.imshow('origin',frame)
+        cv2.imshow('thresh',thresh)
+        cv2.imshow('origin',frame)
 
         #使影片接近正常速度呈現
-        #   time.sleep(0.04)
+        time.sleep(0.033)
 
-        # if cv2.waitKey(1) & 0xFF == ord('q'):
-        #     break
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
 
         # 更新平均影像
         cv2.accumulateWeighted(blur, avg_float, 0.01)
@@ -79,12 +79,12 @@ def MotionDetect(filename):
 
     print(filename,"偵測到",MotionCounter,"個變化")
     #關閉影像
-    # cap.release()
+    cap.release()
 
 def main():
     
     # 影片所在目錄的路徑(windows跟Linux的斜線轉換要注意)
-    mypath = ".\\"
+    mypath = ".\\MotionVideo"
 
     # 取得該目錄下所有檔案與子目錄名稱
     files = listdir(mypath)
