@@ -4,8 +4,9 @@
 ## 說明
 - 本工具適合針對監視器產生的許多小檔案進行分析，不適合針對長時間連續錄影進行分析。
 - 若監視器產生出來的影片是連續且長時間的影像，請先使用其他工具進行分割，分割出來每個片段長度以1分鐘為最佳。
-- 本專案分成一般python程式以及多執行序版本，主要邏輯相同，但是多執行序執行時間比較短~
+- 本專案分成一般python程式以及多執行序版本，主要影像處理邏輯相同，一般版本可以顯示目標區域並且依照有無偵測到動態改變外框顏色，多執行緒版本執行時間比較短~
 - ``.\MotionVideo``資料夾中附上一段Demo用的影片，場景是監視器在偵測晚上老鼠出現的動作。
+- 使用前請先更改``input_path``檔案路徑，可輸入單一檔案名稱或資料夾路徑
 
 ## 環境
 - Python 3.6
@@ -23,7 +24,7 @@ pip install -r requirements.txt
 3. 執行程式。 Luanch the python script. 
 
 - 一般: ``$ python detection.py``
-- 多執行序: ``$ python detection_multithread.py``
+- 多執行緒: ``$ python detection_multithread.py``
 
 
 ## 參考資料
