@@ -45,8 +45,7 @@ def MotionDetect(filename):
 
         if resize_x_end != 0 and resize_y_end != 0:
             # 顯示關注區
-            cv2.rectangle(frame_show, (resize_x_start, resize_y_start), (resize_x_end, resize_y_end), (0, 255, 0), 2)
-
+            # cv2.rectangle(frame_show, (resize_x_start, resize_y_start), (resize_x_end, resize_y_end), (0, 255, 0), 2)
             # 裁剪每個Frame尺寸，只專注在特定區域避免過多雜訊干擾
             frame = frame[resize_y_start:resize_y_end,resize_x_start:resize_x_end]
 
@@ -72,6 +71,13 @@ def MotionDetect(filename):
         # 判斷影像是否有任何移動點，計算整個影片移動點發生次數
         if np.any(thresh):
             MotionCounter+=1
+            if  resize_x_end != 0 and resize_y_end != 0:
+                # 目標區域有物體移動，將框框改成紅色
+                cv2.rectangle(frame_show, (resize_x_start, resize_y_start), (resize_x_end, resize_y_end), (0, 0, 255), 2)
+        else:
+            if  resize_x_end != 0 and resize_y_end != 0:
+                # 顯示關注區
+                cv2.rectangle(frame_show, (resize_x_start, resize_y_start), (resize_x_end, resize_y_end), (0, 255, 0), 2)
 
         
         # 呈現影像
