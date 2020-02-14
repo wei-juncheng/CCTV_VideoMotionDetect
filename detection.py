@@ -14,11 +14,11 @@ def MotionDetect(filename):
     # 初始化平均畫面
     ret, frame = cap.read()
 
-    #調整影像Frame大小
-    resize_y_end = 600
+    #調整影像關注區位置大小(只關注特定區域避免其他位置的雜訊影響結果)
+    resize_y_end = 500
     resize_x_end = 550
-    resize_y_start = 50
-    resize_x_start =210
+    resize_y_start = 33
+    resize_x_start =150
     frame = frame[resize_y_start:resize_y_end,resize_x_start:resize_x_end]
 
     avg = cv2.blur(frame, (2, 2))
@@ -35,6 +35,10 @@ def MotionDetect(filename):
         # 若讀取至影片結尾，則跳出
         if ret == False:
             break
+        # 顯示關注區
+        frame_show = frame.copy()
+        cv2.rectangle(frame_show, (resize_x_start, resize_y_start), (resize_x_end, resize_y_end), (0, 255, 0), 2)
+
         # 裁剪Frame尺寸，只專注在特定區域避免過多雜訊干擾
         frame = frame[resize_y_start:resize_y_end,resize_x_start:resize_x_end]
 
@@ -54,8 +58,8 @@ def MotionDetect(filename):
         
         # 去除雜訊
         kernel = np.ones((3, 3), np.uint8)
-        thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel, iterations=2) #先腐蝕，後膨脹，去白噪點
-        thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel, iterations=2) #先膨脹，後腐蝕，去黑噪點
+        thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel, iterations=2) #先腐蝕，後膨脹
+        thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel, iterations=2) #先膨脹，後腐蝕
 
         # 判斷影像是否有任何移動點，計算整個影片移動點發生次數
         if np.any(thresh):
@@ -63,8 +67,8 @@ def MotionDetect(filename):
 
         
         # 呈現影像
+        cv2.imshow('origin',frame_show)
         cv2.imshow('thresh',thresh)
-        cv2.imshow('origin',frame)
 
         #使影片接近正常速度呈現
         time.sleep(0.033)
@@ -88,11 +92,15 @@ def MotionDetect(filename):
 def main():
     
     # 影片所在目錄的路徑(windows跟Linux的斜線轉換要注意)
-    mypath = ".\\MotionVideo"
+    mypath = "C:\\Users\\v-cache\\Videos\\MiCCTV\\2020021402"
 
-    # 取得該目錄下所有檔案與子目錄名稱
-    files = listdir(mypath)
-
+    try:
+        # 取得該目錄下所有檔案與子目錄名稱
+        files = listdir(mypath)
+    except:
+        print("請輸入有效的資料夾名稱")
+        return
+    
     #儲存所有MP4檔案名稱的List
     MP4FileNameList = []
 
@@ -105,7 +113,7 @@ def main():
 
     for index, videoFile in enumerate(MP4FileNameList):
         MotionDetect(videoFile)
-
+    
 
 if __name__ == '__main__':
     main()
