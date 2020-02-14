@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import os
 from os import listdir
-from os.path import isfile, join 
+from os.path import isfile, join ,isdir
 import time
 import threading
 
@@ -14,12 +14,17 @@ def MotionDetect(filename):
     # 初始化平均畫面
     ret, frame = cap.read()
 
-    #調整影像關注區位置大小(只關注特定區域避免其他位置的雜訊影響結果)
-    resize_y_end = 500
-    resize_x_end = 550
-    resize_y_start = 33
-    resize_x_start =150
-    frame = frame[resize_y_start:resize_y_end,resize_x_start:resize_x_end]
+    # 設定特定區域進行觀察，程式只會偵測這個目標範圍內的動態，避免過多雜訊干擾結果
+    # 若無需則都輸入0，程式會直接讀取影片的完整大小
+    # 有些監視器會有時間標記，會被程式誤判為物體移動，因此強烈建議先設定目標區域
+    resize_y_start = 35 # 左上角y座標
+    resize_x_start =20 # 左上角x座標
+    resize_y_end = 500 # 右下角y座標
+    resize_x_end = 600 # 右下角x座標
+
+    if resize_x_end != 0 and resize_y_end != 0:
+        # 裁剪初始Frame尺寸，只專注在特定區域避免過多雜訊干擾
+        frame = frame[resize_y_start:resize_y_end,resize_x_start:resize_x_end]
 
     avg = cv2.blur(frame, (2, 2))
     avg_float = np.float32(avg)
@@ -35,12 +40,15 @@ def MotionDetect(filename):
         # 若讀取至影片結尾，則跳出
         if ret == False:
             break
-        # 顯示關注區
+        
         frame_show = frame.copy()
-        cv2.rectangle(frame_show, (resize_x_start, resize_y_start), (resize_x_end, resize_y_end), (0, 255, 0), 2)
 
-        # 裁剪Frame尺寸，只專注在特定區域避免過多雜訊干擾
-        frame = frame[resize_y_start:resize_y_end,resize_x_start:resize_x_end]
+        if resize_x_end != 0 and resize_y_end != 0:
+            # 顯示關注區
+            cv2.rectangle(frame_show, (resize_x_start, resize_y_start), (resize_x_end, resize_y_end), (0, 255, 0), 2)
+
+            # 裁剪每個Frame尺寸，只專注在特定區域避免過多雜訊干擾
+            frame = frame[resize_y_start:resize_y_end,resize_x_start:resize_x_end]
 
         # 模糊處理
         blur = cv2.blur(frame, (2, 2))
@@ -82,9 +90,10 @@ def MotionDetect(filename):
         
         
 
-    print(filename,"偵測到",MotionCounter,"個變化")
+    # print(filename,"偵測到",MotionCounter,"個變化")
+    print("{0}偵測到{1:3}個Frame有變化".format(filename, MotionCounter ))
     #關閉影像
-    # cap.release()
+    cap.release()
 
 
 
@@ -92,13 +101,20 @@ def MotionDetect(filename):
 def main():
     
     # 影片所在目錄的路徑(windows跟Linux的斜線轉換要注意)
-    mypath = "C:\\Users\\v-cache\\Videos\\MiCCTV\\2020021402"
+    input_path = ".\\MotionVideo"
 
+    files = []
     try:
-        # 取得該目錄下所有檔案與子目錄名稱
-        files = listdir(mypath)
+        if isfile(input_path):
+            files.append(input_path)
+        elif isdir(input_path):
+            # 取得該目錄下所有檔案與子目錄名稱
+            files = listdir(input_path)
+        else:
+            print('無法讀取檔案')
+            return
     except:
-        print("請輸入有效的資料夾名稱")
+        print("請輸入有效的檔案或資料夾名稱")
         return
     
     #儲存所有MP4檔案名稱的List
@@ -106,7 +122,7 @@ def main():
 
     # 蒐集所有結尾是.mp4的檔案名稱
     for f in files:
-        fullpath = join(mypath,f)
+        fullpath = join(input_path,f)
         # 判斷是否為mp4結尾:
         if isfile(fullpath) and fullpath.endswith('.mp4'):
             MP4FileNameList.append(fullpath)

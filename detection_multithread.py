@@ -2,11 +2,11 @@ import cv2
 import numpy as np
 import os
 from os import listdir
-from os.path import isfile, join 
+from os.path import isfile, join ,isdir
 import time
 import threading
 
-def MotionDetect(filename):
+def MotionDetect(filename, index):
 
     # 讀取影片檔
     cap = cv2.VideoCapture(filename)
@@ -14,12 +14,17 @@ def MotionDetect(filename):
     # 初始化平均畫面
     ret, frame = cap.read()
 
-    #調整Frame大小
-    resize_y_end = 600
-    resize_x_end = 550
-    resize_y_start = 50
-    resize_x_start =210
-    frame = frame[resize_y_start:resize_y_end,resize_x_start:resize_x_end]
+    # 設定特定區域進行觀察，程式只會偵測這個目標範圍內的動態，避免過多雜訊干擾結果
+    # 若無需則都輸入0，程式會直接讀取影片的完整大小
+    # 有些監視器會有時間標記，會被程式誤判為物體移動，因此強烈建議先設定目標區域
+    resize_y_start = 35 # 左上角y座標
+    resize_x_start =20 # 左上角x座標
+    resize_y_end = 500 # 右下角y座標
+    resize_x_end = 600 # 右下角x座標
+
+    if resize_x_end != 0 and resize_y_end != 0:
+        # 裁剪初始Frame尺寸，只專注在特定區域避免過多雜訊干擾
+        frame = frame[resize_y_start:resize_y_end,resize_x_start:resize_x_end]
 
 
     avg = cv2.blur(frame, (2, 2))
@@ -35,8 +40,9 @@ def MotionDetect(filename):
         # 若讀取至影片結尾，則跳出
         if ret == False:
             break
-        # 裁剪Frame尺寸，只專注在特定區域避免過多雜訊干擾
-        frame = frame[resize_y_start:resize_y_end,resize_x_start:resize_x_end]
+        if resize_x_end != 0 and resize_y_end != 0:
+            # 裁剪每個Frame尺寸，只專注在特定區域避免過多雜訊干擾
+            frame = frame[resize_y_start:resize_y_end,resize_x_start:resize_x_end]
 
         # 模糊處理
         blur = cv2.blur(frame, (2, 2))
@@ -61,53 +67,62 @@ def MotionDetect(filename):
         if np.any(thresh):
             MotionCounter+=1
 
-        # 呈現影像
-        cv2.imshow('thresh',thresh)
-        cv2.imshow('origin',frame)
-
-        #使影片接近正常速度呈現
-        time.sleep(0.033)
-
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-
         # 更新平均影像
         cv2.accumulateWeighted(blur, avg_float, 0.01)
         avg = cv2.convertScaleAbs(avg_float)
         
 
-
-    print(filename,"偵測到",MotionCounter,"個變化")
-    #關閉影像
-    cap.release()
+    global MotionStatisticsDic
+    MotionStatisticsDic[index] = MotionCounter
+    
 
 def main():
     
     # 影片所在目錄的路徑(windows跟Linux的斜線轉換要注意)
-    mypath = ".\\MotionVideo"
+    input_path = ".\\MotionVideo"
 
-    # 取得該目錄下所有檔案與子目錄名稱
-    files = listdir(mypath)
+    files = []
+
+    try:
+        if isfile(input_path):
+            files.append(input_path)
+        elif isdir(input_path):
+            # 取得該目錄下所有檔案與子目錄名稱
+            files = listdir(input_path)
+        else:
+            print('無法讀取檔案')
+            return
+    except:
+        print("請輸入有效的檔案或資料夾名稱")
+        return
 
     #儲存所有MP4檔案名稱的List
     MP4FileNameList = []
 
     # 蒐集所有結尾是.mp4的檔案名稱
     for f in files:
-        fullpath = join(mypath,f)
+        fullpath = join(input_path,f)
         # 判斷是否為mp4結尾:
         if isfile(fullpath) and fullpath.endswith('.mp4'):
             MP4FileNameList.append(fullpath)
 
     threads = []
-
-    for index, videoFile in enumerate(MP4FileNameList):
-        threads.append(threading.Thread(target = MotionDetect , args = (videoFile,)))
-        threads[index].start()
-
-    for index, videoFile in enumerate(threads):
-        threads[index].join()
+    FileNameList = []
     
 
+    for index, videoFile in enumerate(MP4FileNameList):
+        FileNameList.append(videoFile)
+        threads.append(threading.Thread(target = MotionDetect , args = (videoFile, index)))
+        threads[index].start()
+
+    print("正在多執行緒分析影像，請稍後")
+    for index, videoFile in enumerate(threads):
+        threads[index].join()
+        
+    for index, filename in enumerate(FileNameList):
+        print("{0:3} {1}發現{2:3}個Frame有變化".format(index+1, filename, MotionStatisticsDic[index]))
+    
+    
+MotionStatisticsDic = {}
 if __name__ == '__main__':
     main()
